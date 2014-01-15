@@ -7,8 +7,12 @@
 """
 from trytond.pool import Pool
 
+from .carrier import Carrier, CarrierZonePriceList
+
 
 def register():
     Pool.register(
+        Carrier,
+        CarrierZonePriceList,
         module='carrier_zone', type_='model'
     )
