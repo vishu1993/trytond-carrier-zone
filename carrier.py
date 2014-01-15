@@ -4,8 +4,9 @@
     :license: BSD, see LICENSE for more details.
 """
 from trytond.model import ModelSQL, ModelView, fields
-from trytond.pool import PoolMeta
+from trytond.pool import PoolMeta, Pool
 from trytond.pyson import Eval, Bool
+from trytond.transaction import Transaction
 
 __all__ = ['Carrier', 'CarrierZonePriceList']
 __metaclass__ = PoolMeta
@@ -47,6 +48,55 @@ class Carrier:
             return self.zone_currency.digits
         return 2
 
+    def get_sale_price(self):
+        Address = Pool().get('party.address')
+        ZonePriceList = Pool().get('carrier.zone_price_list')
+
+        price, currency_id = super(Carrier, self).get_sale_price()
+        if self.carrier_cost_method == 'zone':
+            if 'address' in Transaction().context:
+                zone = self.find_zone_for_address(
+                    Address(Transaction().context['address'])
+                )
+            elif 'zone' in Transaction().context:
+                zone, = ZonePriceList.search([
+                    ('carrier', '=', self.id),
+                    ('id', '=', Transaction().context['zone']),
+                ])
+            if zone is not None:
+                return zone.price, self.zone_currency.id
+        return price, currency_id
+
+    def get_purchase_price(self):
+        Address = Pool().get('party.address')
+        ZonePriceList = Pool().get('carrier.zone_price_list')
+
+        price, currency_id = super(Carrier, self).get_purchase_price()
+        if self.carrier_cost_method == 'zone':
+            zone = None
+            if 'address' in Transaction().context:
+                zone = self.find_zone_for_address(
+                    Address(Transaction().context['address'])
+                )
+            elif 'zone' in Transaction().context:
+                zone, = ZonePriceList.search([
+                    ('carrier', '=', self.id),
+                    ('id', '=', Transaction().context['zone']),
+                ])
+            if zone is not None:
+                return zone.price, self.zone_currency.id
+        return price, currency_id
+
+    def find_zone_for_address(self, address):
+        """
+        A helper function that finds the most matching zone from the given
+        address.
+
+        :param address: Active Record of the address
+        :return: Active Record of the zone_price_list
+        """
+        # TODO
+
 
 class CarrierZonePriceList(ModelSQL, ModelView):
     'Carrier Zone price List'
@@ -64,3 +114,5 @@ class CarrierZonePriceList(ModelSQL, ModelView):
     price = fields.Numeric(
         'Price', digits=(16, Eval('_parent_carrier.weight_currency_digits', 2))
     )
+
+    # TODO add a sequence and order by sequence

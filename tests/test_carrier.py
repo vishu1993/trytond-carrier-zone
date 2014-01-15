@@ -33,46 +33,55 @@ class TestCarrier(unittest.TestCase):
         """
         trytond.tests.test_tryton.install_module('carrier_zone')
 
+    def create_carrier(self):
+        '''
+        Create the carrier
+        '''
+        Carrier = POOL.get('carrier')
+        ProductTemplate = POOL.get('product.template')
+        Product = POOL.get('product.product')
+        UOM = POOL.get('product.uom')
+        Currency = POOL.get('currency.currency')
+        Party = POOL.get('party.party')
+
+        party, = Party.create([{
+            'name': 'Carrier',
+        }])
+        usd = Currency(
+            name='US Dollar', symbol="$", code="USD"
+        )
+        usd.save()
+
+        template, = ProductTemplate.create([{
+            'name': 'Carrier',
+            'default_uom': UOM.search([
+                ('name', '=', 'Unit'),
+            ])[0].id,
+            'type': 'service',
+            'list_price': Decimal(0),
+            'cost_price': Decimal(0),
+        }])
+        product, = Product.create([{
+            'template': template.id,
+        }])
+
+        carrier, = Carrier.create([{
+            'zone_currency': usd,
+            'carrier_product': product.id,
+            'party': party.id,
+        }])
+
+        return carrier
+
     def test0010createzone(self):
         '''
         Create a zone and pricelist for it
         '''
         with Transaction().start(DB_NAME, USER, context=CONTEXT):
-            Carrier = POOL.get('carrier')
-            ProductTemplate = POOL.get('product.template')
-            Product = POOL.get('product.product')
-            UOM = POOL.get('product.uom')
-            CarrierZonePriceList = POOL.get('carrier.zone_price_list')
-            Currency = POOL.get('currency.currency')
             Country = POOL.get('country.country')
-            Party = POOL.get('party.party')
+            CarrierZonePriceList = POOL.get('carrier.zone_price_list')
 
-            party, = Party.create([{
-                'name': 'Carrier',
-            }])
-            usd = Currency(
-                name='US Dollar', symbol="$", code="USD"
-            )
-            usd.save()
-
-            template, = ProductTemplate.create([{
-                'name': 'Carrier',
-                'default_uom': UOM.search([
-                    ('name', '=', 'Unit'),
-                ])[0].id,
-                'type': 'service',
-                'list_price': Decimal(0),
-                'cost_price': Decimal(0),
-            }])
-            product, = Product.create([{
-                'template': template.id,
-            }])
-
-            carrier, = Carrier.create([{
-                'zone_currency': usd,
-                'carrier_product': product.id,
-                'party': party.id,
-            }])
+            carrier = self.create_carrier()
 
             united_states, = Country.create([{
                 'name': 'United States',
@@ -83,6 +92,14 @@ class TestCarrier(unittest.TestCase):
                 'country': united_states.id,
                 'price': Decimal('100'),
             }])
+
+    def test0020priceonaddress(self):
+        '''
+        Ensure that the right zone is found
+        '''
+        with Transaction().start(DB_NAME, USER, context=CONTEXT):
+            # TODO
+            pass
 
 
 def suite():
