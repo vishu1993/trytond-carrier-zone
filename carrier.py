@@ -54,6 +54,7 @@ class Carrier:
 
         price, currency_id = super(Carrier, self).get_sale_price()
         if self.carrier_cost_method == 'zone':
+            zone = None
             if 'address' in Transaction().context:
                 zone = self.find_zone_for_address(
                     Address(Transaction().context['address'])
@@ -95,7 +96,21 @@ class Carrier:
         :param address: Active Record of the address
         :return: Active Record of the zone_price_list
         """
-        # TODO
+        CarrierZone = Pool().get('carrier.zone_price_list')
+
+        zones = CarrierZone.search([
+            ('country', '=', address.country),
+            ('subdivision', '=', address.subdivision),
+        ], limit=1)
+
+        if not zones:
+            zones = CarrierZone.search([
+                ('country', '=', address.country),
+                ('subdivision', '=', None),
+            ], limit=1)
+
+        if zones:
+            return zones[0]
 
 
 class CarrierZonePriceList(ModelSQL, ModelView):

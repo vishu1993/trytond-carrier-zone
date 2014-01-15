@@ -98,8 +98,96 @@ class TestCarrier(unittest.TestCase):
         Ensure that the right zone is found
         '''
         with Transaction().start(DB_NAME, USER, context=CONTEXT):
-            # TODO
-            pass
+            CarrierZonePriceList = POOL.get('carrier.zone_price_list')
+            Country = POOL.get('country.country')
+            Subdivision = POOL.get('country.subdivision')
+            Address = POOL.get('party.address')
+
+            carrier = self.create_carrier()
+
+            united_states, india = Country.create([
+                {
+                    'name': 'United States',
+                    'code': 'US',
+                },
+                {
+                    'name': 'India',
+                    'code': 'IN',
+                },
+            ])
+
+            california, colorado = Subdivision.create([
+                {
+                    'country': united_states.id,
+                    'name': 'Calfornia',
+                    'code': 'CA',
+                    'type': 'state'
+                },
+                {
+                    'country': united_states.id,
+                    'name': 'Colorado',
+                    'code': 'CO',
+                    'type': 'state'
+                },
+            ])
+
+            uttar_pradesh, = Subdivision.create([
+                {
+                    'country': india.id,
+                    'name': 'Uttar Pradesh',
+                    'code': 'UP',
+                    'type': 'state'
+                },
+            ])
+
+            zone_in_all, = CarrierZonePriceList.create([
+                {
+                    'carrier': carrier.id,
+                    'country': india.id,
+                    'price': Decimal('100'),
+                },
+
+            ])
+            zone_us_ca, = CarrierZonePriceList.create([
+                {
+                    'carrier': carrier.id,
+                    'country': united_states.id,
+                    'subdivision': california.id,
+                    'price': Decimal('100'),
+                }
+            ])
+
+            # Get a perfect match on state and country
+            zone = carrier.find_zone_for_address(
+                Address(
+                    country=united_states.id,
+                    subdivision=california.id,
+                )
+            )
+            self.assertTrue(zone)
+            self.assertEqual(zone.country.id, united_states.id)
+            self.assertEqual(zone.subdivision.id, california.id)
+
+            # no record with given subdivision or subdivision=None
+            zone = carrier.find_zone_for_address(
+                Address(
+                    country=united_states.id,
+                    subdivision=colorado.id,
+                )
+            )
+            self.assertFalse(zone)
+
+            # Get a match of zone for state that doesn't exist in list
+            # but a record exist where subdivsion isn't set
+            zone = carrier.find_zone_for_address(
+                Address(
+                    country=india.id,
+                    subdivision=uttar_pradesh.id,
+                )
+            )
+            self.assertTrue(zone)
+            self.assertEqual(zone.country.id, india.id)
+            self.assertFalse(zone.subdivision)
 
 
 def suite():
