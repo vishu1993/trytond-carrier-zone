@@ -32,7 +32,6 @@ class TestViewsDepends(unittest.TestCase):
         """
         trytond.tests.test_tryton.install_module('carrier_zone')
 
-    @unittest.skip("Skip views test since there are no views")
     def test0005views(self):
         '''
         Test views.
