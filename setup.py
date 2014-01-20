@@ -50,7 +50,7 @@ for dep in info.get('depends', []):
 setup(
     name='%s_%s' % (PREFIX, MODULE),
     version=info.get('version'),
-    description='Softex Module for Tryton',
+    description='Zone based carrier cost for Tryton',
     author='Openlabs Technologies & Consulting (P) Limited',
     author_email='info@openlabs.co.in',
     classifiers=[
