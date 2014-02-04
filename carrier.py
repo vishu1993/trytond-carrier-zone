@@ -127,7 +127,8 @@ class CarrierZonePriceList(ModelSQL, ModelView):
         depends=['country']
     )
     price = fields.Numeric(
-        'Price', digits=(16, Eval('_parent_carrier.weight_currency_digits', 2))
+        'Price', required=True,
+        digits=(16, Eval('_parent_carrier.weight_currency_digits', 2))
     )
 
     # TODO add a sequence and order by sequence
